@@ -1,0 +1,136 @@
+Experiment 9 
+
+// File: HibernateCRUDExample.java
+
+/*
+-------- hibernate.cfg.xml --------
+Place this file in your `src/main/resources` directory
+
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/your_database_name</property>
+        <property name="hibernate.connection.username">your_username</property>
+        <property name="hibernate.connection.password">your_password</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="show_sql">true</property>
+
+        <mapping class="Student"/>
+    </session-factory>
+</hibernate-configuration>
+*/
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import javax.persistence.*;
+
+// Student Entity
+@Entity
+@Table(name = "students")
+class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+    private int age;
+
+    public Student() {} // Required by Hibernate
+
+    public Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    // Getters and setters
+    public int getId() { return id; }
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    public void setName(String name) { this.name = name; }
+    public void setAge(int age) { this.age = age; }
+
+    @Override
+    public String toString() {
+        return "Student{id=" + id + ", name='" + name + "', age=" + age + '}';
+    }
+}
+
+public class HibernateCRUDExample {
+
+    private static SessionFactory factory;
+
+    public static void main(String[] args) {
+        try {
+            factory = new Configuration().configure("hibernate.cfg.xml").addAnnotatedClass(Student.class).buildSessionFactory();
+
+            // Create
+            Student student = new Student("Alice", 20);
+            int studentId = saveStudent(student);
+
+            // Read
+            Student retrieved = getStudent(studentId);
+            System.out.println("Read: " + retrieved);
+
+            // Update
+            updateStudent(studentId, "Alicia", 21);
+
+            // Read again
+            Student updated = getStudent(studentId);
+            System.out.println("Updated: " + updated);
+
+            // Delete
+            deleteStudent(studentId);
+            System.out.println("Deleted student with ID: " + studentId);
+
+        } finally {
+            factory.close();
+        }
+    }
+
+    public static int saveStudent(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        int id = (int) session.save(student);
+        tx.commit();
+        session.close();
+        return id;
+    }
+
+    public static Student getStudent(int id) {
+        Session session = factory.openSession();
+        Student student = session.get(Student.class, id);
+        session.close();
+        return student;
+    }
+
+    public static void updateStudent(int id, String newName, int newAge) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student student = session.get(Student.class, id);
+        if (student != null) {
+            student.setName(newName);
+            student.setAge(newAge);
+            session.update(student);
+        }
+        tx.commit();
+        session.close();
+    }
+
+    public static void deleteStudent(int id) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student student = session.get(Student.class, id);
+        if (student != null) {
+            session.delete(student);
+        }
+        tx.commit();
+        session.close();
+    }
+}
